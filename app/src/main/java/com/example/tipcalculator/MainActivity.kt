@@ -3,9 +3,8 @@ package com.example.tipcalculator
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.*
@@ -29,7 +28,8 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun TipCalculatorScreen(
     initialBill: String = "0",
-    initialTipPercent: String = "0"
+    initialTipPercent: String = "0",
+    shouldRoundUp: Boolean = true
 ) {
     var billAmount by remember {
         mutableStateOf(initialBill)
@@ -37,43 +37,92 @@ fun TipCalculatorScreen(
     var tipPercent by remember {
         mutableStateOf(initialTipPercent)
     }
+    var roundUp by remember {
+        mutableStateOf(shouldRoundUp)
+    }
 
-    val tip = calculateTip(billAmount = billAmount, tipPercent = tipPercent)
+    val tip = calculateTip(
+        billAmount = billAmount,
+        tipPercent = tipPercent,
+        roundUp = roundUp
+    )
 
     Column(
-        Modifier.fillMaxWidth(),
-        horizontalAlignment = Alignment.CenterHorizontally,
+        Modifier.padding(32.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
-        Text(text = "Calculate Tip")
+        Text(text = "Calculate Tip", modifier = Modifier.align(Alignment.CenterHorizontally))
 
-        EditNumberField(value = billAmount, hint = "Enter Bill") { bill ->
-            billAmount = bill
-        }
-        EditNumberField(value = tipPercent, hint = "Enter Tip Percent") { tip ->
-            tipPercent = tip
-        }
-        DisplayTip(tip = tip)
+        EditNumberField(
+            value = billAmount,
+            hint = "Enter Bill",
+            modifier = Modifier.align(Alignment.CenterHorizontally),
+            onValueChanged = { billAmount = it }
+        )
+        EditNumberField(
+            value = tipPercent,
+            hint = "Enter Tip Percent",
+            modifier = Modifier.align(Alignment.CenterHorizontally),
+            onValueChanged = { tipPercent = it }
+        )
+        RoundTheTipRow(roundUp, onRoundUpChanged = { roundUp = it })
+        DisplayTip(tip = tip, modifier = Modifier.align(Alignment.CenterHorizontally))
     }
 
 }
 
 @Composable
-fun EditNumberField(value: String, hint: String, onValueChanged: (String) -> Unit) {
-    TextField(value = value, onValueChange = onValueChanged, label = { Text(hint) })
+fun EditNumberField(
+    value: String,
+    hint: String,
+    onValueChanged: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    TextField(
+        value = value,
+        onValueChange = onValueChanged,
+        label = { Text(hint) },
+        modifier = modifier
+    )
 }
 
 @Composable
-fun DisplayTip(tip: String) {
-    Text(text = "Tip Amount is $tip")
+fun DisplayTip(tip: String, modifier: Modifier = Modifier) {
+    Text(text = "Tip Amount is $tip", modifier = modifier)
 }
 
-fun calculateTip(billAmount: String, tipPercent: String): String {
+@Composable
+fun RoundTheTipRow(
+    roundUp: Boolean,
+    onRoundUpChanged: (Boolean) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .size(48.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(text = "Round The Tip", modifier = modifier.wrapContentWidth(Alignment.Start))
+        Switch(
+            checked = roundUp,
+            onCheckedChange = onRoundUpChanged,
+            modifier = modifier
+                .fillMaxWidth()
+                .wrapContentWidth(Alignment.End)
+        )
+    }
+}
+
+fun calculateTip(billAmount: String, tipPercent: String, roundUp: Boolean): String {
     val tipPercentage = tipPercent.toDoubleOrNull() ?: 0.0
     val bill = billAmount.toDoubleOrNull() ?: 0.0
     val tip = tipPercentage / 100 * bill
 
-    return tip.toString()
+    return if (roundUp) {
+        kotlin.math.ceil(tip).toString()
+    } else
+        tip.toString()
 }
 
 @Preview(showBackground = true, showSystemUi = true)
